@@ -5,53 +5,18 @@
 <title>Gestion Gana Ousmane</title>
 
 <style>
-body{
-    font-family:Arial;
-    margin:0;
-    background:#f4f6f9;
-}
-header{
-    background:#1e3a8a;
-    color:white;
-    text-align:center;
-    padding:20px;
-}
-.container{
-    width:95%;
-    max-width:1000px;
-    margin:20px auto;
-    background:white;
-    padding:20px;
-    border-radius:10px;
-}
-input{
-    padding:8px;
-    margin:5px;
-}
-button{
-    padding:6px 10px;
-    background:#1e3a8a;
-    color:white;
-    border:none;
-    cursor:pointer;
-}
-button:hover{
-    background:#162d66;
-}
-table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:20px;
-}
-th,td{
-    border:1px solid #ccc;
-    padding:8px;
-    text-align:center;
-}
-th{
-    background:#1e3a8a;
-    color:white;
-}
+body{font-family:Arial;margin:0;background:#f4f6f9;}
+header{background:#1e3a8a;color:white;text-align:center;padding:20px;}
+.container{width:95%;max-width:1000px;margin:20px auto;background:white;padding:20px;border-radius:10px;}
+input{padding:8px;margin:5px;}
+button{padding:6px 10px;background:#1e3a8a;color:white;border:none;cursor:pointer;}
+button:hover{background:#162d66;}
+table{width:100%;border-collapse:collapse;margin-top:20px;}
+th,td{border:1px solid #ccc;padding:8px;text-align:center;}
+th{background:#1e3a8a;color:white;}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);}
+.modal-content{background:white;margin:100px auto;padding:20px;width:90%;max-width:600px;border-radius:10px;}
+.close{float:right;cursor:pointer;color:red;font-size:20px;}
 </style>
 </head>
 
@@ -59,26 +24,15 @@ th{
 
 <header>
 <h2>GESTION GANA OUSMANE SARL</h2>
-<p>
-27 21 72 41 77 | 
-contact@estganaousmanesarl.com | 
-11 BP 2399 Abidjan 11
-</p>
+<p>27 21 72 41 77 | contact@estganaousmanesarl.com | 11 BP 2399 Abidjan 11</p>
 </header>
 
 <div class="container">
 
 <h3>Ajouter un Employé</h3>
-
-Nom:
-<input type="text" id="nom">
-
-Prénom:
-<input type="text" id="prenom">
-
-Salaire de Base:
-<input type="number" id="salaire">
-
+Nom <input type="text" id="nom">
+Prénom <input type="text" id="prenom">
+Salaire Base <input type="number" id="salaire">
 <button onclick="ajouterEmploye()">Ajouter</button>
 
 <hr>
@@ -95,11 +49,18 @@ Salaire de Base:
 <th>Actions</th>
 </tr>
 </thead>
-
 <tbody id="employeTable"></tbody>
-
 </table>
 
+</div>
+
+<!-- MODAL HISTORIQUE -->
+<div class="modal" id="historyModal">
+<div class="modal-content">
+<span class="close" onclick="fermerHistorique()">&times;</span>
+<h3>Historique des Transactions</h3>
+<div id="historyContent"></div>
+</div>
 </div>
 
 <script>
@@ -107,146 +68,149 @@ Salaire de Base:
 let employes = JSON.parse(localStorage.getItem("employes")) || [];
 
 function save(){
-    localStorage.setItem("employes", JSON.stringify(employes));
+localStorage.setItem("employes", JSON.stringify(employes));
 }
 
 function ajouterEmploye(){
-    let nom=document.getElementById("nom").value.trim();
-    let prenom=document.getElementById("prenom").value.trim();
-    let salaire=parseInt(document.getElementById("salaire").value);
+let nom=document.getElementById("nom").value.trim();
+let prenom=document.getElementById("prenom").value.trim();
+let salaire=parseInt(document.getElementById("salaire").value);
 
-    if(!nom || !prenom || !salaire){
-        alert("Remplir tous les champs");
-        return;
-    }
+if(!nom || !prenom || !salaire){
+alert("Remplir tous les champs");
+return;
+}
 
-    employes.push({
-        id:Date.now(),
-        nom:nom,
-        prenom:prenom,
-        salaireBase:salaire,
-        totalRetire:0,
-        reste:salaire,
-        transactions:[]
-    });
+employes.push({
+id:Date.now(),
+nom,
+prenom,
+salaireBase:salaire,
+totalRetire:0,
+reste:salaire,
+transactions:[]
+});
 
-    save();
-    afficher();
+save();
+afficher();
 }
 
 function retrait(id){
-    let montant=parseInt(prompt("Montant à retirer :"));
+let montant=parseInt(prompt("Montant à retirer :"));
+if(isNaN(montant) || montant<=0) return;
 
-    if(isNaN(montant) || montant<=0) return;
+let emp=employes.find(e=>e.id==id);
 
-    let emp=employes.find(e=>e.id==id);
-
-    if(montant>emp.reste){
-        alert("Solde insuffisant");
-        return;
-    }
-
-    emp.totalRetire += montant;
-    emp.reste -= montant;
-
-    emp.transactions.push({
-        type:"Retrait",
-        montant:montant,
-        date:new Date().toLocaleString()
-    });
-
-    save();
-    afficher();
+if(montant>emp.reste){
+alert("Solde insuffisant");
+return;
 }
 
-function versement(id){
-    let montant=parseInt(prompt("Montant à ajouter au reste :"));
+emp.totalRetire+=montant;
+emp.reste-=montant;
 
-    if(isNaN(montant) || montant<=0) return;
+emp.transactions.push({
+type:"Retrait",
+montant,
+date:new Date().toLocaleString()
+});
 
-    let emp=employes.find(e=>e.id==id);
-
-    emp.reste += montant;
-
-    emp.transactions.push({
-        type:"Versement",
-        montant:montant,
-        date:new Date().toLocaleString()
-    });
-
-    save();
-    afficher();
+save();
+afficher();
 }
 
-function imprimerCarte(id){
+function afficherHistorique(id){
+let emp=employes.find(e=>e.id==id);
+let div=document.getElementById("historyContent");
+div.innerHTML="";
 
-    let emp = employes.find(e=>e.id==id);
-    if(!emp) return;
+if(emp.transactions.length===0){
+div.innerHTML="Aucune transaction";
+}else{
+emp.transactions.forEach((t,index)=>{
+div.innerHTML+=`
+<p>
+${t.date} - ${t.type} : ${t.montant} FCFA
+<button onclick="imprimerTransaction(${emp.id},${index})">
+Imprimer
+</button>
+</p>
+`;
+});
+}
 
-    let dateHeure=new Date().toLocaleString();
+document.getElementById("historyModal").style.display="block";
+}
 
-    let w=window.open("");
+function fermerHistorique(){
+document.getElementById("historyModal").style.display="none";
+}
 
-    w.document.write(`
-    <div style="border:3px solid #1e3a8a;
-                padding:15px;
-                width:320px;
-                font-family:Arial;
-                text-align:center;
-                border-radius:10px;">
+function imprimerTransaction(empId,index){
 
-        <h3 style="color:#1e3a8a;">
-        GESTION GANA OUSMANE SARL
-        </h3>
+let emp=employes.find(e=>e.id==empId);
+let t=emp.transactions[index];
 
-        <p style="font-size:11px;">
-        27 21 72 41 77<br>
-        contact@estganaousmanesarl.com<br>
-        11 BP 2399 Abidjan 11
-        </p>
+let w=window.open("");
+let dateHeure=new Date().toLocaleString();
 
-        <hr>
+w.document.write(`
+<div style="border:3px solid #1e3a8a;
+padding:20px;
+width:350px;
+font-family:Arial;
+border-radius:10px;">
 
-        <p><strong>Nom :</strong> ${emp.nom}</p>
-        <p><strong>Prénom :</strong> ${emp.prenom}</p>
+<h3 style="color:#1e3a8a;text-align:center;">
+GESTION GANA OUSMANE SARL
+</h3>
 
-        <p><strong>Salaire Total Reçu :</strong> ${emp.totalRetire} FCFA</p>
-        <p><strong>Reste :</strong> ${emp.reste} FCFA</p>
+<p style="font-size:11px;text-align:center;">
+27 21 72 41 77<br>
+contact@estganaousmanesarl.com<br>
+11 BP 2399 Abidjan 11
+</p>
 
-        <p style="font-size:12px;margin-top:10px;">
-        Date & Heure : ${dateHeure}
-        </p>
+<hr>
 
-    </div>
-    `);
+<p><strong>Nom :</strong> ${emp.nom}</p>
+<p><strong>Prénom :</strong> ${emp.prenom}</p>
 
-    w.document.close();
-    w.print();
+<p><strong>Type :</strong> ${t.type}</p>
+<p><strong>Montant :</strong> ${t.montant} FCFA</p>
+<p><strong>Date :</strong> ${t.date}</p>
+
+<p style="margin-top:15px;font-size:12px;">
+Imprimé le : ${dateHeure}
+</p>
+
+</div>
+`);
+
+w.document.close();
+w.print();
 }
 
 function afficher(){
+let tbody=document.getElementById("employeTable");
+tbody.innerHTML="";
 
-    let tbody=document.getElementById("employeTable");
-    tbody.innerHTML="";
+employes.forEach(emp=>{
+let tr=document.createElement("tr");
 
-    employes.forEach(emp=>{
+tr.innerHTML=`
+<td>${emp.nom}</td>
+<td>${emp.prenom}</td>
+<td>${emp.totalRetire} FCFA</td>
+<td>${emp.reste} FCFA</td>
+<td>
+<button onclick="retrait(${emp.id})">Retrait</button>
+<button onclick="afficherHistorique(${emp.id})">Historique</button>
+</td>
+`;
 
-        let tr=document.createElement("tr");
-
-        tr.innerHTML=`
-        <td>${emp.nom}</td>
-        <td>${emp.prenom}</td>
-        <td>${emp.totalRetire} FCFA</td>
-        <td>${emp.reste} FCFA</td>
-        <td>
-            <button onclick="retrait(${emp.id})">Retrait</button>
-            <button onclick="versement(${emp.id})">Versement</button>
-            <button onclick="imprimerCarte(${emp.id})">Carte</button>
-        </td>
-        `;
-
-        tbody.appendChild(tr);
-    });
+tbody.appendChild(tr);
+});
 }
 
 afficher();
