@@ -1,6 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gestion Gana Ousmane</title>
+
+<style>
+body{
+    font-family:Arial;
+    margin:0;
+    background:#f4f6f9;
+}
+header{
+    background:#1e3a8a;
+    color:white;
+    text-align:center;
+    padding:20px;
+}
+.container{
+    width:95%;
+    max-width:1000px;
+    margin:20px auto;
+    background:white;
+    padding:20px;
+    border-radius:10px;
+}
+input{
+    padding:8px;
+    margin:5px;
+}
+button{
+    padding:6px 10px;
+    background:#1e3a8a;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+button:hover{
+    background:#162d66;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+th,td{
+    border:1px solid #ccc;
+    padding:8px;
+    text-align:center;
+}
+th{
+    background:#1e3a8a;
+    color:white;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>GESTION GANA OUSMANE SARL</h2>
+<p>
+27 21 72 41 77 | 
+contact@estganaousmanesarl.com | 
+11 BP 2399 Abidjan 11
+</p>
+</header>
+
+<div class="container">
+
+<h3>Ajouter un Employé</h3>
+
+Nom:
+<input type="text" id="nom">
+
+Prénom:
+<input type="text" id="prenom">
+
+Salaire de Base:
+<input type="number" id="salaire">
+
+<button onclick="ajouterEmploye()">Ajouter</button>
+
+<hr>
+
+<h3>Liste des Employés</h3>
+
+<table>
+<thead>
+<tr>
+<th>Nom</th>
+<th>Prénom</th>
+<th>Salaire Total Reçu</th>
+<th>Reste</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody id="employeTable"></tbody>
+
+</table>
+
+</div>
+
 <script>
+
 let employes = JSON.parse(localStorage.getItem("employes")) || [];
-function save(){ localStorage.setItem("employes", JSON.stringify(employes)); }
+
+function save(){
+    localStorage.setItem("employes", JSON.stringify(employes));
+}
 
 function ajouterEmploye(){
     let nom=document.getElementById("nom").value.trim();
@@ -14,10 +122,10 @@ function ajouterEmploye(){
 
     employes.push({
         id:Date.now(),
-        nom,
-        prenom,
+        nom:nom,
+        prenom:prenom,
         salaireBase:salaire,
-        totalRetire:0, // argent total reçu depuis arrivée
+        totalRetire:0,
         reste:salaire,
         transactions:[]
     });
@@ -27,7 +135,8 @@ function ajouterEmploye(){
 }
 
 function retrait(id){
-    let montant=parseInt(prompt("Montant à retirer:"));
+    let montant=parseInt(prompt("Montant à retirer :"));
+
     if(isNaN(montant) || montant<=0) return;
 
     let emp=employes.find(e=>e.id==id);
@@ -37,12 +146,12 @@ function retrait(id){
         return;
     }
 
-    emp.totalRetire += montant;   // on ajoute au total général
-    emp.reste -= montant;         // on diminue le reste
+    emp.totalRetire += montant;
+    emp.reste -= montant;
 
     emp.transactions.push({
         type:"Retrait",
-        montant,
+        montant:montant,
         date:new Date().toLocaleString()
     });
 
@@ -51,16 +160,17 @@ function retrait(id){
 }
 
 function versement(id){
-    let montant=parseInt(prompt("Montant du versement:"));
-    if(isNaN(montant)||montant<=0) return;
+    let montant=parseInt(prompt("Montant à ajouter au reste :"));
+
+    if(isNaN(montant) || montant<=0) return;
 
     let emp=employes.find(e=>e.id==id);
 
-    emp.reste += montant; // on augmente seulement le reste
+    emp.reste += montant;
 
     emp.transactions.push({
         type:"Versement",
-        montant,
+        montant:montant,
         date:new Date().toLocaleString()
     });
 
@@ -68,13 +178,26 @@ function versement(id){
     afficher();
 }
 
-function imprimerCarte(emp){
-    let w=window.open("");
+function imprimerCarte(id){
+
+    let emp = employes.find(e=>e.id==id);
+    if(!emp) return;
+
     let dateHeure=new Date().toLocaleString();
 
+    let w=window.open("");
+
     w.document.write(`
-    <div style="border:3px solid #1e3a8a;padding:15px;width:320px;font-family:Arial;text-align:center;border-radius:10px;">
-        <h3 style="color:#1e3a8a;">GESTION GANA OUSMANE SARL</h3>
+    <div style="border:3px solid #1e3a8a;
+                padding:15px;
+                width:320px;
+                font-family:Arial;
+                text-align:center;
+                border-radius:10px;">
+
+        <h3 style="color:#1e3a8a;">
+        GESTION GANA OUSMANE SARL
+        </h3>
 
         <p style="font-size:11px;">
         27 21 72 41 77<br>
@@ -93,6 +216,7 @@ function imprimerCarte(emp){
         <p style="font-size:12px;margin-top:10px;">
         Date & Heure : ${dateHeure}
         </p>
+
     </div>
     `);
 
@@ -101,22 +225,24 @@ function imprimerCarte(emp){
 }
 
 function afficher(){
+
     let tbody=document.getElementById("employeTable");
     tbody.innerHTML="";
 
     employes.forEach(emp=>{
+
         let tr=document.createElement("tr");
 
         tr.innerHTML=`
-<td>${emp.nom}</td>
-<td>${emp.prenom}</td>
-<td>${emp.totalRetire} FCFA</td>
-<td>${emp.reste} FCFA</td>
-<td>
-<button onclick="retrait(${emp.id})">Retrait</button>
-<button onclick="versement(${emp.id})">Versement</button>
-<button onclick='imprimerCarte(${JSON.stringify(emp)})'>Carte</button>
-</td>
+        <td>${emp.nom}</td>
+        <td>${emp.prenom}</td>
+        <td>${emp.totalRetire} FCFA</td>
+        <td>${emp.reste} FCFA</td>
+        <td>
+            <button onclick="retrait(${emp.id})">Retrait</button>
+            <button onclick="versement(${emp.id})">Versement</button>
+            <button onclick="imprimerCarte(${emp.id})">Carte</button>
+        </td>
         `;
 
         tbody.appendChild(tr);
@@ -124,4 +250,8 @@ function afficher(){
 }
 
 afficher();
+
 </script>
+
+</body>
+</html>
