@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <title>Gestion Gana Ousmane</title>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.10.0/dist/supabase.min.js"></script>
+<script>
+const supabaseUrl = 'TON_SUPABASE_URL';
+const supabaseKey = 'TON_SUPABASE_ANON_KEY';
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+</script>
 <style>
 body{font-family:Arial;margin:0;background:#f4f6f9;}
 header{background:#1e3a8a;color:white;text-align:center;padding:20px;}
@@ -66,183 +71,201 @@ Photo <input type="file" id="photo" accept="image/*">
 </div>
 
 <script>
-
 let employes = JSON.parse(localStorage.getItem("employes")) || [];
 
+// Sauvegarder dans le localStorage
 function save(){
-localStorage.setItem("employes", JSON.stringify(employes));
+    localStorage.setItem("employes", JSON.stringify(employes));
 }
 
-function ajouterEmploye(){
+async function ajouterEmploye(){
+    let nom=document.getElementById("nom").value.trim();
+    let prenom=document.getElementById("prenom").value.trim();
+    let salaire=parseInt(document.getElementById("salaire").value);
+    let photoInput=document.getElementById("photo");
 
-let nom=document.getElementById("nom").value.trim();
-let prenom=document.getElementById("prenom").value.trim();
-let salaire=parseInt(document.getElementById("salaire").value);
-let photoInput=document.getElementById("photo");
+    if(!nom || !prenom || !salaire){
+        alert("Remplir tous les champs");
+        return;
+    }
 
-if(!nom || !prenom || !salaire){
-alert("Remplir tous les champs");
-return;
+    let reader=new FileReader();
+    reader.onload = async function(e){
+        const newEmp = {
+            nom,
+            prenom,
+            photo: e.target.result || "",
+            salaire_base: salaire,
+            total_retiré: 0,
+            reste: salaire,
+            transactions: []
+        };
+
+        // Envoyer à Supabase
+        const { data, error } = await supabase
+            .from('employes')
+            .insert([newEmp]);
+
+        if(error){
+            console.error("Erreur Supabase :", error);
+            alert("Erreur lors de l'ajout de l'employé");
+            return;
+        }
+
+        // Ajouter localement pour affichage immédiat
+        employes.push({
+            id:Date.now(),
+            ...newEmp
+        });
+
+        afficher();
+
+        document.getElementById("nom").value="";
+        document.getElementById("prenom").value="";
+        document.getElementById("salaire").value="";
+        document.getElementById("photo").value="";
+    }
+
+    if(photoInput.files[0]){
+        reader.readAsDataURL(photoInput.files[0]);
+    } else {
+        reader.onload({target:{result:""}});
+    }
 }
 
-let reader=new FileReader();
-
-reader.onload=function(e){
-
-employes.push({
-id:Date.now(),
-nom,
-prenom,
-photo:e.target.result || "",
-salaireBase:salaire,
-totalRetire:0,
-reste:salaire,
-transactions:[]
-});
-
-save();
-afficher();
-
-document.getElementById("nom").value="";
-document.getElementById("prenom").value="";
-document.getElementById("salaire").value="";
-document.getElementById("photo").value="";
-};
-
-if(photoInput.files[0]){
-reader.readAsDataURL(photoInput.files[0]);
-}else{
-reader.onload({target:{result:""}});
-}
-}
-
+// Retrait
 function retrait(id){
+    let montant=parseInt(prompt("Montant à retirer :"));
+    if(isNaN(montant) || montant<=0) return;
 
-let montant=parseInt(prompt("Montant à retirer :"));
-if(isNaN(montant) || montant<=0) return;
+    let emp=employes.find(e=>e.id==id);
 
-let emp=employes.find(e=>e.id==id);
+    if(montant>emp.reste){
+        alert("Solde insuffisant");
+        return;
+    }
 
-if(montant>emp.reste){
-alert("Solde insuffisant");
-return;
+    emp.totalRetire+=montant;
+    emp.reste-=montant;
+
+    emp.transactions.push({
+        type:"Retrait",
+        montant,
+        date:new Date().toLocaleString()
+    });
+
+    save();
+    afficher();
 }
 
-emp.totalRetire+=montant;
-emp.reste-=montant;
+// Versement
+function versement(id){
+    let montant=parseInt(prompt("Montant du versement :"));
+    if(isNaN(montant) || montant<=0) return;
 
-emp.transactions.push({
-type:"Retrait",
-montant,
-date:new Date().toLocaleString()
-});
+    let emp=employes.find(e=>e.id==id);
 
-save();
-afficher();
+    emp.reste+=montant;
+
+    emp.transactions.push({
+        type:"Versement",
+        montant,
+        date:new Date().toLocaleString()
+    });
+
+    save();
+    afficher();
 }
 
+// Afficher l'historique
 function afficherHistorique(id){
+    let emp=employes.find(e=>e.id==id);
+    let div=document.getElementById("historyContent");
+    div.innerHTML="";
 
-let emp=employes.find(e=>e.id==id);
-let div=document.getElementById("historyContent");
-div.innerHTML="";
+    if(emp.transactions.length===0){
+        div.innerHTML="Aucune transaction";
+    } else {
+        emp.transactions.forEach((t,index)=>{
+            div.innerHTML+=`
+            <p>
+            ${t.date} - ${t.type} : ${t.montant} FCFA
+            <button onclick="imprimerTransaction(${emp.id},${index})">
+            Imprimer
+            </button>
+            </p>
+            `;
+        });
+    }
 
-if(emp.transactions.length===0){
-div.innerHTML="Aucune transaction";
-}else{
-emp.transactions.forEach((t,index)=>{
-div.innerHTML+=`
-<p>
-${t.date} - ${t.type} : ${t.montant} FCFA
-<button onclick="imprimerTransaction(${emp.id},${index})">
-Imprimer
-</button>
-</p>
-`;
-});
-}
-
-document.getElementById("historyModal").style.display="block";
+    document.getElementById("historyModal").style.display="block";
 }
 
 function fermerHistorique(){
-document.getElementById("historyModal").style.display="none";
+    document.getElementById("historyModal").style.display="none";
 }
 
+// Imprimer transaction
 function imprimerTransaction(empId,index){
+    let emp=employes.find(e=>e.id==empId);
+    let t=emp.transactions[index];
+    let w=window.open("");
+    let dateHeure=new Date().toLocaleString();
 
-let emp=employes.find(e=>e.id==empId);
-let t=emp.transactions[index];
+    w.document.write(`
+    <div style="border:3px solid #1e3a8a;
+    padding:20px;
+    width:350px;
+    font-family:Arial;
+    border-radius:10px;">
+    <h3 style="color:#1e3a8a;text-align:center;">
+    GESTION GANA OUSMANE SARL
+    </h3>
+    <p style="font-size:11px;text-align:center;">
+    27 21 72 41 77<br>
+    contact@estganaousmanesarl.com<br>
+    11 BP 2399 Abidjan 11
+    </p>
+    <hr>
+    <p><strong>Nom :</strong> ${emp.nom}</p>
+    <p><strong>Prénom :</strong> ${emp.prenom}</p>
+    <p><strong>Type :</strong> ${t.type}</p>
+    <p><strong>Montant :</strong> ${t.montant} FCFA</p>
+    <p><strong>Date :</strong> ${t.date}</p>
+    <p style="margin-top:15px;font-size:12px;">
+    Imprimé le : ${dateHeure}
+    </p>
+    </div>
+    `);
 
-let w=window.open("");
-let dateHeure=new Date().toLocaleString();
-
-w.document.write(`
-<div style="border:3px solid #1e3a8a;
-padding:20px;
-width:350px;
-font-family:Arial;
-border-radius:10px;">
-
-<h3 style="color:#1e3a8a;text-align:center;">
-GESTION GANA OUSMANE SARL
-</h3>
-
-<p style="font-size:11px;text-align:center;">
-27 21 72 41 77<br>
-contact@estganaousmanesarl.com<br>
-11 BP 2399 Abidjan 11
-</p>
-
-<hr>
-
-<p><strong>Nom :</strong> ${emp.nom}</p>
-<p><strong>Prénom :</strong> ${emp.prenom}</p>
-
-<p><strong>Type :</strong> ${t.type}</p>
-<p><strong>Montant :</strong> ${t.montant} FCFA</p>
-<p><strong>Date :</strong> ${t.date}</p>
-
-<p style="margin-top:15px;font-size:12px;">
-Imprimé le : ${dateHeure}
-</p>
-
-</div>
-`);
-
-w.document.close();
-w.print();
+    w.document.close();
+    w.print();
 }
 
+// Afficher les employés
 function afficher(){
+    let tbody=document.getElementById("employeTable");
+    tbody.innerHTML="";
 
-let tbody=document.getElementById("employeTable");
-tbody.innerHTML="";
-
-employes.forEach(emp=>{
-
-let tr=document.createElement("tr");
-
-tr.innerHTML=`
-<td>
-${emp.photo ? `<img src="${emp.photo}" class="photo-mini">` : ""}
-${emp.nom}
-</td>
-<td>${emp.prenom}</td>
-<td>${emp.totalRetire} FCFA</td>
-<td>${emp.reste} FCFA</td>
-<td>
-<button onclick="retrait(${emp.id})">Retrait</button>
-<button onclick="afficherHistorique(${emp.id})">Historique</button>
-</td>
-`;
-
-tbody.appendChild(tr);
-});
+    employes.forEach(emp=>{
+        let tr=document.createElement("tr");
+        tr.innerHTML=`
+        <td>${emp.photo ? `<img src="${emp.photo}" class="photo-mini">` : ""}${emp.nom}</td>
+        <td>${emp.prenom}</td>
+        <td>${emp.totalRetire} FCFA</td>
+        <td>${emp.reste} FCFA</td>
+        <td>
+            <button onclick="retrait(${emp.id})">Retrait</button>
+            <button onclick="versement(${emp.id})">Versement</button>
+            <button onclick="afficherHistorique(${emp.id})">Historique</button>
+        </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
+// Initialisation
 afficher();
-
 </script>
 
 </body>
