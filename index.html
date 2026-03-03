@@ -17,6 +17,7 @@ th{background:#1e3a8a;color:white;}
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);}
 .modal-content{background:white;margin:100px auto;padding:20px;width:90%;max-width:600px;border-radius:10px;}
 .close{float:right;cursor:pointer;color:red;font-size:20px;}
+.photo-mini{width:35px;height:35px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover;}
 </style>
 </head>
 
@@ -33,6 +34,7 @@ th{background:#1e3a8a;color:white;}
 Nom <input type="text" id="nom">
 Prénom <input type="text" id="prenom">
 Salaire Base <input type="number" id="salaire">
+Photo <input type="file" id="photo" accept="image/*">
 <button onclick="ajouterEmploye()">Ajouter</button>
 
 <hr>
@@ -72,19 +74,26 @@ localStorage.setItem("employes", JSON.stringify(employes));
 }
 
 function ajouterEmploye(){
+
 let nom=document.getElementById("nom").value.trim();
 let prenom=document.getElementById("prenom").value.trim();
 let salaire=parseInt(document.getElementById("salaire").value);
+let photoInput=document.getElementById("photo");
 
 if(!nom || !prenom || !salaire){
 alert("Remplir tous les champs");
 return;
 }
 
+let reader=new FileReader();
+
+reader.onload=function(e){
+
 employes.push({
 id:Date.now(),
 nom,
 prenom,
+photo:e.target.result || "",
 salaireBase:salaire,
 totalRetire:0,
 reste:salaire,
@@ -93,9 +102,22 @@ transactions:[]
 
 save();
 afficher();
+
+document.getElementById("nom").value="";
+document.getElementById("prenom").value="";
+document.getElementById("salaire").value="";
+document.getElementById("photo").value="";
+};
+
+if(photoInput.files[0]){
+reader.readAsDataURL(photoInput.files[0]);
+}else{
+reader.onload({target:{result:""}});
+}
 }
 
 function retrait(id){
+
 let montant=parseInt(prompt("Montant à retirer :"));
 if(isNaN(montant) || montant<=0) return;
 
@@ -120,6 +142,7 @@ afficher();
 }
 
 function afficherHistorique(id){
+
 let emp=employes.find(e=>e.id==id);
 let div=document.getElementById("historyContent");
 div.innerHTML="";
@@ -192,14 +215,19 @@ w.print();
 }
 
 function afficher(){
+
 let tbody=document.getElementById("employeTable");
 tbody.innerHTML="";
 
 employes.forEach(emp=>{
+
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td>${emp.nom}</td>
+<td>
+${emp.photo ? `<img src="${emp.photo}" class="photo-mini">` : ""}
+${emp.nom}
+</td>
 <td>${emp.prenom}</td>
 <td>${emp.totalRetire} FCFA</td>
 <td>${emp.reste} FCFA</td>
