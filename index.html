@@ -7,28 +7,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 body{font-family:Arial;margin:0;padding:0;background:#f4f6f9;}
-/* Connexion */
-#loginBox{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    background:#1e3a8a;
-}
-#loginBox .box{
-    background:white;
-    padding:30px;
-    border-radius:10px;
-    width:300px;
-    text-align:center;
-    box-shadow:0 4px 10px rgba(0,0,0,0.3);
-}
-#loginBox input{width:100%;padding:10px;margin:10px 0;border-radius:5px;border:1px solid #ccc;}
-#loginBox button{width:100%;padding:10px;background:#1e3a8a;color:white;border:none;border-radius:5px;cursor:pointer;font-size:16px;}
-#loginBox button:hover{background:#162d66;}
-
-/* Gestion */
-#gestionContainer{display:none;}
 header{background:#1e3a8a;color:white;text-align:center;padding:20px;position:relative}
 button{padding:5px 10px;background:#1e3a8a;color:white;border:none;cursor:pointer;margin:2px;}
 button:hover{background:#162d66;}
@@ -45,24 +23,12 @@ img.employee-photo{width:50px;height:50px;border-radius:50%;}
 </head>
 <body>
 
-<!-- Page Connexion -->
-<div id="loginBox">
-    <div class="box">
-        <h2>Connexion Admin</h2>
-        <input type="password" id="password" placeholder="Mot de passe">
-        <button onclick="login()">Se connecter</button>
-    </div>
-</div>
-
-<!-- Page Gestion -->
-<div id="gestionContainer">
 <header>
 <h1>GESTION GANA OUSMANE SARL</h1>
 <p>27 21 72 41 77 | contact@estganaousmanesarl.com | 11 BP 2399 Abidjan 11</p>
-<button class="logout-btn" onclick="logout()">Déconnexion</button>
 </header>
 
-<div class="container">
+<div class="container" style="width:95%;max-width:1000px;margin:20px auto;background:white;padding:20px;border-radius:10px">
 <h2>Ajouter un Employé</h2>
 Nom: <input type="text" id="nom">
 Prénom: <input type="text" id="prenom">
@@ -96,34 +62,9 @@ Photo: <input type="file" id="photo" accept="image/*">
 <div id="historyContent"></div>
 </div>
 </div>
-</div>
 
 <script>
 const { jsPDF } = window.jspdf;
-
-// Vérification session
-if(localStorage.getItem("admin")==="true"){
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("gestionContainer").style.display="block";
-}
-
-// Connexion
-function login(){
-    let pass = document.getElementById("password").value.trim();
-    if(pass === "admin123"){
-        localStorage.setItem("admin","true");
-        document.getElementById("loginBox").style.display="none";
-        document.getElementById("gestionContainer").style.display="block";
-    } else {
-        alert("Mot de passe incorrect !");
-    }
-}
-
-// Déconnexion
-function logout(){
-    localStorage.removeItem("admin");
-    location.reload();
-}
 
 // Gestion Employés
 let employes = JSON.parse(localStorage.getItem("employes")) || [];
