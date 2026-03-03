@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gestion Gana Ousmane</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body{font-family:Arial;margin:0;padding:0;background:#f4f6f9;}
+/* Connexion */
+#loginBox{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    background:#1e3a8a;
+}
+#loginBox .box{
+    background:white;
+    padding:30px;
+    border-radius:10px;
+    width:300px;
+    text-align:center;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3);
+}
+#loginBox input{width:100%;padding:10px;margin:10px 0;border-radius:5px;border:1px solid #ccc;}
+#loginBox button{width:100%;padding:10px;background:#1e3a8a;color:white;border:none;border-radius:5px;cursor:pointer;font-size:16px;}
+#loginBox button:hover{background:#162d66;}
+
+/* Gestion */
+#gestionContainer{display:none;}
+header{background:#1e3a8a;color:white;text-align:center;padding:20px;position:relative}
+button{padding:5px 10px;background:#1e3a8a;color:white;border:none;cursor:pointer;margin:2px;}
+button:hover{background:#162d66;}
+table{width:100%;border-collapse:collapse;margin-top:15px;}
+th, td{border:1px solid #ccc;padding:8px;text-align:center;}
+th{background:#1e3a8a;color:white;}
+.logout-btn{position:absolute;top:20px;right:20px;background:red;padding:8px 15px;color:white;border:none;cursor:pointer}
+.logout-btn:hover{background:#990000}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);}
+.modal-content{background:white;margin:100px auto;padding:20px;width:80%;max-width:500px;border-radius:10px;position:relative;}
+.close{position:absolute;top:10px;right:15px;font-size:20px;cursor:pointer;color:red;}
+img.employee-photo{width:50px;height:50px;border-radius:50%;}
+</style>
+</head>
+<body>
+
+<!-- Page Connexion -->
+<div id="loginBox">
+    <div class="box">
+        <h2>Connexion Admin</h2>
+        <input type="password" id="password" placeholder="Mot de passe">
+        <button onclick="login()">Se connecter</button>
+    </div>
+</div>
+
+<!-- Page Gestion -->
+<div id="gestionContainer">
+<header>
+<h1>GESTION GANA OUSMANE SARL</h1>
+<p>27 21 72 41 77 | contact@estganaousmanesarl.com | 11 BP 2399 Abidjan 11</p>
+<button class="logout-btn" onclick="logout()">Déconnexion</button>
+</header>
+
+<div class="container">
+<h2>Ajouter un Employé</h2>
+Nom: <input type="text" id="nom">
+Prénom: <input type="text" id="prenom">
+Salaire: <input type="number" id="salaire">
+Photo: <input type="file" id="photo" accept="image/*">
+<button onclick="ajouterEmploye()">Ajouter</button>
+
+<hr>
+
+<h2>Liste des Employés</h2>
+<table>
+<thead>
+<tr>
+<th>Photo</th>
+<th>Nom</th>
+<th>Prénom</th>
+<th>Salaire Total</th>
+<th>Reste</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="employeTable"></tbody>
+</table>
+</div>
+
+<!-- Modal Historique -->
+<div class="modal" id="historyModal">
+<div class="modal-content">
+<span class="close" onclick="closeModal()">&times;</span>
+<h3>Historique des transactions</h3>
+<div id="historyContent"></div>
+</div>
+</div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+// Vérification session
+if(localStorage.getItem("admin")==="true"){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("gestionContainer").style.display="block";
+}
+
+// Connexion
+function login(){
+    let pass = document.getElementById("password").value.trim();
+    if(pass === "admin123"){
+        localStorage.setItem("admin","true");
+        document.getElementById("loginBox").style.display="none";
+        document.getElementById("gestionContainer").style.display="block";
+    } else {
+        alert("Mot de passe incorrect !");
+    }
+}
+
+// Déconnexion
+function logout(){
+    localStorage.removeItem("admin");
+    location.reload();
+}
+
+// Gestion Employés
+let employes = JSON.parse(localStorage.getItem("employes")) || [];
+function save(){ localStorage.setItem("employes", JSON.stringify(employes)); }
+
+function ajouterEmploye(){
+    let nom=document.getElementById("nom").value.trim();
+    let prenom=document.getElementById("prenom").value.trim();
+    let salaire=parseInt(document.getElementById("salaire").value);
+    let photoInput = document.getElementById("photo").files[0];
+
+    if(!nom || !prenom || !salaire){ alert("Remplir tous les champs"); return; }
+
+    if(photoInput){
+        let reader = new FileReader();
+        reader.onload = function(e){
+            let emp={ id:Date.now(), nom, prenom, salaire, reste:salaire, photo:e.target.result, transactions:[] };
+            employes.push(emp);
+            save();
+            afficher();
+        }
+        reader.readAsDataURL(photoInput);
+    } else {
+        let emp={ id:Date.now(), nom, prenom, salaire, reste:salaire, photo:null, transactions:[] };
+        employes.push(emp);
+        save();
+        afficher();
+    }
+}
+
+// Retrait
+function retrait(id){
+    let montant = parseInt(prompt("Montant à retirer:"));
+    if(isNaN(montant) || montant<=0){ alert("Montant invalide"); return; }
+    let emp=employes.find(e=>e.id==id);
+    if(montant>emp.reste){ alert("Solde insuffisant"); return; }
+    emp.reste -= montant;
+    if(emp.reste<0) emp.reste=0;
+    emp.transactions.push({type:"Retrait", montant, date:new Date().toLocaleString()});
+    save();
+    genererPDF(emp, montant, "Retrait");
+    afficher();
+}
+
+// Versement
+function versement(id){
+    let montant = parseInt(prompt("Montant du versement:"));
+    if(isNaN(montant) || montant<=0){ alert("Montant invalide"); return; }
+    let emp=employes.find(e=>e.id==id);
+    emp.reste += montant;
+    emp.transactions.push({type:"Versement", montant, date:new Date().toLocaleString()});
+    save();
+    genererPDF(emp, montant, "Versement");
+    afficher();
+}
+
+// Historique
+function voirHistorique(id){
+    let emp = employes.find(e=>e.id==id);
+    let div = document.getElementById("historyContent");
+    div.innerHTML = emp.transactions.length===0 ? "Aucune transaction" : "";
+    emp.transactions.forEach(t=>{
+        div.innerHTML += `<p>${t.date} - ${t.type} : ${t.montant} FCFA</p>`;
+    });
+    document.getElementById("historyModal").style.display="block";
+}
+function closeModal(){ document.getElementById("historyModal").style.display="none"; }
+
+// PDF Reçu
+function genererPDF(emp,montant,type){
+    let doc=new jsPDF();
+    doc.setFontSize(18);
+    doc.text("GESTION GANA OUSMANE SARL",20,20);
+    doc.setFontSize(10);
+    doc.text("27 21 72 41 77 | contact@estganaousmanesarl.com | 11 BP 2399 Abidjan 11",20,28);
+    doc.setLineWidth(0.5);
+    doc.line(20,32,190,32);
+    doc.setFontSize(14);
+    doc.text(`${type.toUpperCase()} - REÇU`,20,45);
+    doc.setFontSize(12);
+    doc.text(`Nom: ${emp.nom}`,20,55);
+    doc.text(`Prénom: ${emp.prenom}`,20,63);
+    doc.text(`Salaire Total: ${emp.salaire} FCFA`,20,71);
+    doc.text(`${type} Montant: ${montant} FCFA`,20,79);
+    doc.text(`Somme Restante: ${emp.reste} FCFA`,20,87);
+    doc.text(`Date: ${new Date().toLocaleString()}`,20,95);
+    let qrData = `Historique de ${emp.nom} - Reste: ${emp.reste} FCFA`;
+    doc.addImage(creerQR(qrData), "PNG", 140, 50, 50, 50);
+    doc.save(`${type}_Recu_${emp.nom}.pdf`);
+}
+function creerQR(text){
+    let qrCanvas=document.createElement("canvas");
+    new QRCode(qrCanvas,{text:text,width:150,height:150});
+    return qrCanvas.toDataURL("image/png");
+}
+
+// Carte Employé
+function imprimerCarte(emp){
+    let w=window.open("");
+    let photoHTML = emp.photo ? `<img src="${emp.photo}" style="width:80px;height:80px;border-radius:50%;"><br>` : "";
+    w.document.write(`<div style="border:2px solid black;padding:10px;width:300px;text-align:center;">
+<h3>Carte Employé</h3>
+${photoHTML}
+Nom: ${emp.nom}<br>Prénom: ${emp.prenom}<br>Salaire: ${emp.salaire} FCFA<br>Reste: ${emp.reste} FCFA<br>
+<div id="qrcode"></div></div>`);
+    new QRCode(w.document.getElementById("qrcode"), {text:"Historique "+emp.nom+" - Reste: "+emp.reste+" FCFA", width:100,height:100});
+    w.document.close();
+    w.print();
+}
+
+// Afficher tableau
+function afficher(){
+    let tbody=document.getElementById("employeTable");
+    tbody.innerHTML="";
+    employes.forEach(emp=>{
+        let resteAffiche = emp.reste>=0 ? emp.reste : 0;
+        let photoHTML = emp.photo ? `<img src="${emp.photo}" class="employee-photo">` : "";
+        let tr=document.createElement("tr");
+        tr.innerHTML=`
+<td>${photoHTML}</td>
+<td>${emp.nom}</td>
+<td>${emp.prenom}</td>
+<td>${emp.salaire} FCFA</td>
+<td>${resteAffiche} FCFA</td>
+<td>
+<button onclick="retrait(${emp.id})">Retrait</button>
+<button onclick="versement(${emp.id})">Versement</button>
+<button onclick="voirHistorique(${emp.id})">Historique</button>
+<button onclick='imprimerCarte(${JSON.stringify(emp)})'>Imprimer Carte</button>
+</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+afficher();
+</script>
+
+</body>
+</html>
