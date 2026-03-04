@@ -42,4 +42,4 @@ Conçue pour **Gana Ousmane SARL**.
 1. **Cloner le projet ou télécharger `index.html`**  
 
 ```bash
-git clone https://github.com/TonCompte/Gestion-Gana-Ousmane.git
+git clone https://github.com/GanaNourou/Gestion-Gana-Ousmane.git
