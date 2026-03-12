@@ -88,110 +88,125 @@ th{background:#1e3a8a;color:white;}
 
 <script>
 
-let employes=JSON.parse(localStorage.getItem("employes"))||[];
-let transactions=JSON.parse(localStorage.getItem("transactions"))||[];
+// — LocalStorage
+let employes = JSON.parse(localStorage.getItem("employes")) || [];
+let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 
+// — Sauvegarder
 function save(){
-localStorage.setItem("employes",JSON.stringify(employes));
-localStorage.setItem("transactions",JSON.stringify(transactions));
+  localStorage.setItem("employes", JSON.stringify(employes));
+  localStorage.setItem("transactions", JSON.stringify(transactions));
 }
 
+// — Ajouter employé
 function ajouterEmploye(){
-let nom=document.getElementById("nom").value.trim();
-let salaire=parseInt(document.getElementById("salaire").value);
-let photoFile=document.getElementById("photoInput").files[0];
-if(!nom||!salaire||!photoFile){alert("Remplis tout");return;}
+  let nom = document.getElementById("nom").value.trim();
+  let salaire = parseInt(document.getElementById("salaire").value);
+  let photoFile = document.getElementById("photoInput").files[0];
 
-let reader=new FileReader();
-reader.onload=function(){
-employes.push({
-id:Date.now(),
-nom,
-salaireBase:salaire,
-totalRecu:0,
-salaireRestant:salaire,
-photo:reader.result
-});
-save(); afficherEmployes();
-}
-reader.readAsDataURL(photoFile);
+  if(!nom || !salaire || !photoFile){
+    alert("Remplis tous les champs");
+    return;
+  }
+
+  let reader = new FileReader();
+  reader.onload = function(){
+    employes.push({
+      id: Date.now(),
+      nom,
+      salaireBase:salaire,
+      totalRecu:0,
+      salaireRestant:salaire,
+      photo:reader.result
+    });
+    save();
+    afficherEmployes();
+  }
+  reader.readAsDataURL(photoFile);
 }
 
+// — Afficher Employés
 function afficherEmployes(){
-let liste=document.getElementById("liste");
-liste.innerHTML="";
+  let liste = document.getElementById("liste");
+  liste.innerHTML = "";
 
-employes.forEach(emp=>{
-liste.innerHTML+=`
-<div class="card">
-<div class="info">
-<img src="${emp.photo}" class="photo">
-<div>
-<b>${emp.nom}</b><br>
-Salaire Base: ${emp.salaireBase} FCFA<br>
-Total Reçu: ${emp.totalRecu} FCFA<br>
-<b>Salaire Restant: ${emp.salaireRestant} FCFA</b>
-</div>
-</div>
-<div>
-<button onclick="retrait(${emp.id})">Retrait</button>
-<button onclick="versement(${emp.id})">Versement</button>
-<button onclick="carteEmploye(${emp.id})">Carte</button>
-<button onclick="historiqueEmploye(${emp.id})">Historique</button>
-<button onclick="supprimer(${emp.id})" style="background:red;color:white;">X</button>
-</div>
-</div>`;
-});
-afficherTransactions();
+  employes.forEach(emp => {
+    liste.innerHTML += `
+      <div class="card">
+        <div class="info">
+          <img src="${emp.photo}" class="photo">
+          <div>
+            <b>${emp.nom}</b><br>
+            Salaire Base: ${emp.salaireBase} FCFA<br>
+            Total Reçu: ${emp.totalRecu} FCFA<br>
+            <b>Salaire Restant: ${emp.salaireRestant} FCFA</b>
+          </div>
+        </div>
+        <div>
+          <button onclick="retrait(${emp.id})">Retrait</button>
+          <button onclick="versement(${emp.id})">Versement</button>
+          <button onclick="carteEmploye(${emp.id})">Carte</button>
+          <button onclick="historiqueEmploye(${emp.id})">Historique</button>
+          <button onclick="supprimer(${emp.id})" style="background:red;color:white;">X</button>
+        </div>
+      </div>`;
+  });
+
+  afficherTransactions();
 }
 
+// — Retrait
 function retrait(id){
-let montant=parseInt(prompt("Montant retrait"));
-let emp=employes.find(e=>e.id===id);
-if(!montant||montant<=0)return;
-if(montant>emp.salaireRestant){alert("Solde insuffisant");return;}
-emp.salaireRestant-=montant;
-transactions.push({date:new Date().toLocaleString(),nom:emp.nom,type:"Retrait",montant});
-save(); afficherEmployes();
-genererRecu(emp,"Retrait",montant);
+  let montant = parseInt(prompt("Montant retrait"));
+  let emp = employes.find(e => e.id === id);
+  if(!montant || montant <= 0) return;
+  if(montant > emp.salaireRestant){
+    alert("Solde insuffisant");
+    return;
+  }
+  emp.salaireRestant -= montant;
+  transactions.push({date:new Date().toLocaleString(), nom:emp.nom, type:"Retrait", montant});
+  save();
+  afficherEmployes();
+  genererRecu(emp,"Retrait",montant);
 }
 
+// — Versement
 function versement(id){
-let montant=parseInt(prompt("Montant versement"));
-let emp=employes.find(e=>e.id===id);
-if(!montant||montant<=0)return;
-emp.totalRecu+=montant;
-emp.salaireRestant+=montant;
-transactions.push({date:new Date().toLocaleString(),nom:emp.nom,type:"Versement",montant});
-save(); afficherEmployes();
-genererRecu(emp,"Versement",montant);
+  let montant = parseInt(prompt("Montant versement"));
+  let emp = employes.find(e => e.id === id);
+  if(!montant || montant <= 0) return;
+  emp.totalRecu += montant;
+  emp.salaireRestant += montant;
+  transactions.push({date:new Date().toLocaleString(), nom:emp.nom, type:"Versement", montant});
+  save();
+  afficherEmployes();
+  genererRecu(emp,"Versement",montant);
 }
 
+// — Supprimer
 function supprimer(id){
-if(confirm("Supprimer cet employé ?")){
-employes=employes.filter(e=>e.id!==id);
-save(); afficherEmployes();
-}
+  if(confirm("Supprimer cet employé ?")){
+    employes = employes.filter(e => e.id !== id);
+    save(); afficherEmployes();
+  }
 }
 
+// — Afficher Transactions
 function afficherTransactions(){
-let table=document.getElementById("tableTransactions");
-table.innerHTML="";
-transactions.forEach(t=>{
-table.innerHTML+=`
-<tr>
-<td>${t.date}</td>
-<td>${t.nom}</td>
-<td>${t.type}</td>
-<td>${t.montant} FCFA</td>
-</tr>`;
-});
+  let table = document.getElementById("tableTransactions");
+  table.innerHTML = "";
+  transactions.forEach(t => {
+    table.innerHTML += `
+      <tr><td>${t.date}</td><td>${t.nom}</td><td>${t.type}</td><td>${t.montant} FCFA</td></tr>
+    `;
+  });
 }
 
+// — Historique Employé
 function historiqueEmploye(id){
 let password=prompt("Mot de passe admin ?");
 if(password!=="1234"){alert("Accès refusé");return;}
-
 let emp=employes.find(e=>e.id===id);
 let historique=transactions.filter(t=>t.nom===emp.nom);
 
@@ -207,12 +222,7 @@ let totalVersement=0;
 historique.forEach(h=>{
 if(h.type==="Retrait") totalRetrait+=h.montant;
 if(h.type==="Versement") totalVersement+=h.montant;
-body.innerHTML+=`
-<tr>
-<td>${h.date}</td>
-<td>${h.type}</td>
-<td>${h.montant} FCFA</td>
-</tr>`;
+body.innerHTML+= `<tr><td>${h.date}</td><td>${h.type}</td><td>${h.montant} FCFA</td></tr>`;
 });
 
 document.getElementById("totalVersement").innerHTML="<b>Total Versement:</b> "+totalVersement+" FCFA";
@@ -220,15 +230,16 @@ document.getElementById("totalRetrait").innerHTML="<b>Total Retrait:</b> "+total
 
 new Chart(document.getElementById("chartHist"),{
 type:'bar',
-data:{labels:['Versement','Retrait'],
-datasets:[{label:'Montant FCFA',data:[totalVersement,totalRetrait]}]}
+data:{labels:['Versement','Retrait'],datasets:[{label:'Montant FCFA',data:[totalVersement,totalRetrait]}]}
 });
 }
 
 function fermerHistorique(){document.getElementById("modalHistorique").style.display="none";}
 function imprimerHistorique(){window.print();}
+
 function exportPDFHistorique(){const { jsPDF } = window.jspdf;const doc=new jsPDF();doc.text("Historique Employé",20,20);doc.save("Historique.pdf");}
 
+// — Carte Employé
 function carteEmploye(id){
 let emp=employes.find(e=>e.id===id);
 let fenetre=window.open('','width=500,height=700');
@@ -243,20 +254,8 @@ fenetre.document.write(`
 <p>Salaire Restant: ${emp.salaireRestant} FCFA</p>
 <hr>
 <b>Nos Coordonnées</b><br><br>
-Adresse :<br>11 BP 2399, Abidjan, Côte d’Ivoire<br><br>
-Téléphones :<br>
-(+225) 27 21 724 177<br>
-(+225) 07 08 09 05 68<br>
-(+225) 07 07 077 482<br>
-(+225) 07 78 734 449<br>
-(+225) 07 08 299 308<br>
-(+225) 07 07 979 840<br><br>
-Adresses Mail :<br>
-contact@etsganaousmanesarl.com<br>
-ets_ganaousmane@yahoo.fr<br>
-ganaousmane@aviso.ci<br><br>
-Suivez-nous :<br>
-Linkedin | Facebook | Instagram | Twitter | Youtube
+Adresse : 11 BP 2399, Abidjan, Côte d’Ivoire<br><br>
+(+225) 27 21 724 177 | contact@etsganaousmanesarl.com
 </div>
 <br>
 <button onclick="window.print()">🖨 Imprimer</button>
@@ -265,14 +264,14 @@ Linkedin | Facebook | Instagram | Twitter | Youtube
 fenetre.document.close();
 }
 
+// — Reçu thermique
 function genererRecu(emp,type,montant){
 let fenetre=window.open('','width=300,height=600');
 fenetre.document.write(`
 <html><body style="font-family:monospace;font-size:12px;">
 <center><h3>GANA OUSMANE</h3>
 11 BP 2399, Abidjan, Côte d’Ivoire<br>
-(+225) 27 21 724 177<br>
-contact@etsganaousmanesarl.com</center>
+(+225) 27 21 724 177 | contact@etsganaousmanesarl.com</center>
 <hr>
 Date: ${new Date().toLocaleString()}<br>
 Employé: ${emp.nom}<br>
@@ -284,12 +283,13 @@ Total Reçu: ${emp.totalRecu}<br>
 Salaire Restant: ${emp.salaireRestant}<br>
 <hr>
 <center>Merci 🙏</center>
-<button onclick="window.print()">Imprimer</button>
+<button onclick="window.print()">🖨 Imprimer</button>
 </body></html>
 `);
 fenetre.document.close();
 }
 
+// — PDF global
 function exportPDF(){
 const { jsPDF } = window.jspdf;
 const doc = new jsPDF();
@@ -297,7 +297,9 @@ doc.text("Gestion - Gana Ousmane",20,20);
 doc.save("Gestion_Operations.pdf");
 }
 
+// — INITIALISATION
 afficherEmployes();
+
 </script>
 </body>
 </html>
